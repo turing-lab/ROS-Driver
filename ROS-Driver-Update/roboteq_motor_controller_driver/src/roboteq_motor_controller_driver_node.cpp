@@ -8,6 +8,7 @@
 #include <serial/serial.h>
 #include <ros/ros.h>
 #include <std_msgs/String.h>
+#include <std_msgs/Float32.h>
 #include <std_msgs/Empty.h>
 #include <iostream>
 #include <sstream>
@@ -39,7 +40,11 @@ public:
 private:
 	serial::Serial ser;
 	std::string port;
+	
 	int32_t baud;
+	double b;
+	double r;
+
 	ros::Publisher read_publisher;
 	ros::Subscriber cmd_vel_sub;
 
@@ -55,6 +60,9 @@ private:
 
 		nh.getParam("port", port);
 		nh.getParam("baud", baud);
+		nh.getParam("b", b); // Distancia entre centros de las ruedas
+		nh.getParam("r", r); // radio de la oruga		
+
 		cmd_vel_sub = nh.subscribe("/cmd_vel", 10, &RoboteqDriver::cmd_vel_callback, this);
 
 		connect();
@@ -65,7 +73,6 @@ private:
 
 		try
 		{
-
 			ser.setPort(port);
 			ser.setBaudrate(baud); //get baud as param
 			serial::Timeout to = serial::Timeout::simpleTimeout(1000);
@@ -75,7 +82,7 @@ private:
 		catch (serial::IOException &e)
 		{
 
-			ROS_ERROR_STREAM("Unable to open port ");
+			ROS_ERROR_STREAM("Unable to open port ");	
 			ROS_INFO_STREAM("Unable to open port");
 			;
 		}
@@ -95,10 +102,19 @@ private:
 	void cmd_vel_callback(const geometry_msgs::Twist &msg)
 	{
 		std::stringstream cmd_sub;
+
+		ROS_INFO_STREAM("msg.linear.x " << msg.linear.x);
+
+		double phiR = (msg.linear.x+b*msg.angular.z)/r;
+		double phiL = (msg.linear.x-b*msg.angular.z)/r;
+
+		double porR = ((phiR / 5) * 47.76) * 1000;
+		
+
 		cmd_sub << "!G 1"
-				<< " " << msg.linear.x << "_"
+				<< " " << porR << "_"
 				<< "!G 2"
-				<< " " << msg.angular.z << "_";
+				<< " " << porL << "_";
 
 		ser.write(cmd_sub.str());
 		ser.flush();

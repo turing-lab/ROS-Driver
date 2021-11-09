@@ -110,7 +110,7 @@ private:
 
 		double porR = ((phiR / 5) * 47.76) * 1000;
 		
-
+		//enviar al driver las velocidades lineales de cada motor
 		cmd_sub << "!G 1"
 				<< " " << porR << "_"
 				<< "!G 2"
